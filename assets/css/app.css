@@ -1,120 +1,492 @@
-/* This file is for your main application CSS */
 @import "./phoenix.css";
 
-/* Alerts and form errors used by phx.new */
-.alert {
-  padding: 15px;
-  margin-bottom: 20px;
-  border: 1px solid transparent;
-  border-radius: 4px;
-}
-.alert-info {
-  color: #31708f;
-  background-color: #d9edf7;
-  border-color: #bce8f1;
-}
-.alert-warning {
-  color: #8a6d3b;
-  background-color: #fcf8e3;
-  border-color: #faebcc;
-}
-.alert-danger {
-  color: #a94442;
-  background-color: #f2dede;
-  border-color: #ebccd1;
-}
-.alert p {
-  margin-bottom: 0;
-}
-.alert:empty {
-  display: none;
-}
-.invalid-feedback {
-  color: #a94442;
-  display: block;
-  margin: -1rem 0 2rem;
+:root {
+  --game-width: 500px;
+  --game-height: 500px;
+
+  --card-width: 60px;
+  --card-height: 84px;
+
+  --deck-x: calc(var(--card-width) / -2);
+  --deck-y: 0vh;
+
+  --table-card-x: calc(var(--card-width) / 2);
+  --table-card-y: 0vh;
+
+  --hand-bottom-x: 0vw;
+  --hand-bottom-y: calc(var(--game-height) / 2 - var(--card-height));
+
+  --hand-left-x: calc(var(--game-width) / -2 + var(--card-height));
+  --hand-left-y: 0vh;
+
+  --hand-top-x: 0vw;
+  --hand-top-y: calc(var(--game-height) / -2 + var(--card-height));
+
+  --hand-right-x: calc(var(--game-width) / 2 - var(--card-height));
+  --hand-right-y: 0vh;
+
+  --held-card-bottom-x: calc(var(--hand-bottom-x) + var(--card-width) * 1.5);
+  --held-card-bottom-y: var(--hand-bottom-y);
+
+  --held-card-left-x: var(--hand-left-x);
+  --held-card-left-y: calc(var(--hand-left-y) + var(--card-width) * 1.5);
+
+  --held-card-top-x: calc(var(--hand-top-x) - var(--card-width) * 1.5);
+  --held-card-top-y: var(--hand-top-y);
+
+  --held-card-right-x: var(--hand-right-x);
+  --held-card-right-y: calc(var(--hand-right-y) - var(--card-width) * 1.5);
 }
 
-/* LiveView specific classes for your customization */
-.phx-no-feedback.invalid-feedback,
-.phx-no-feedback .invalid-feedback {
-  display: none;
+.update-name-form {
+  border: 1px solid #eaeaea;
+  padding: 1rem;
 }
 
-.phx-click-loading {
-  opacity: 0.5;
-  transition: opacity 1s ease-out;
+.game-svg {
+  width: var(--game-width);
+  height: var(--game-height);
+  background-color: seagreen;
 }
 
-.phx-loading{
-  cursor: wait;
-}
-
-.phx-modal {
-  opacity: 1!important;
-  position: fixed;
-  z-index: 1;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  overflow: auto;
-  background-color: rgba(0,0,0,0.4);
-}
-
-.phx-modal-content {
-  background-color: #fefefe;
-  margin: 15vh auto;
-  padding: 20px;
-  border: 1px solid #888;
-  width: 80%;
-}
-
-.phx-modal-close {
-  color: #aaa;
-  float: right;
-  font-size: 28px;
-  font-weight: bold;
-}
-
-.phx-modal-close:hover,
-.phx-modal-close:focus {
-  color: black;
-  text-decoration: none;
+.card.highlight {
+  filter: drop-shadow(0 0 0.4rem rgba(173, 255, 47, 1.0));
   cursor: pointer;
 }
 
-.fade-in-scale {
-  animation: 0.2s ease-in 0s normal forwards 1 fade-in-scale-keys;
+@keyframes deal-deck {
+  from {
+    transform: translateY(calc(var(--game-height) / -2))
+               rotate(90deg);
+  }
 }
 
-.fade-out-scale {
-  animation: 0.2s ease-out 0s normal forwards 1 fade-out-scale-keys;
+.card.deck.not-started {
+  animation: deal-deck 1s;
 }
 
-.fade-in {
-  animation: 0.2s ease-out 0s normal forwards 1 fade-in-keys;
-}
-.fade-out {
-  animation: 0.2s ease-out 0s normal forwards 1 fade-out-keys;
-}
-
-@keyframes fade-in-scale-keys{
-  0% { scale: 0.95; opacity: 0; }
-  100% { scale: 1.0; opacity: 1; }
+@keyframes slide-from-held-bottom {
+  from {
+    transform: translate(calc(var(--held-card-bottom-x) - var(--card-width) / 2),
+                         var(--held-card-bottom-y));
+  }
 }
 
-@keyframes fade-out-scale-keys{
-  0% { scale: 1.0; opacity: 1; }
-  100% { scale: 0.95; opacity: 0; }
+.card.table.slide-from-held-bottom {
+  animation: slide-from-held-bottom 1s;
 }
 
-@keyframes fade-in-keys{
-  0% { opacity: 0; }
-  100% { opacity: 1; }
+@keyframes slide-from-held-left {
+  from {
+    transform: translate(var(--held-card-left-x), var(--card-width))
+               rotate(90deg);
+  }
 }
 
-@keyframes fade-out-keys{
-  0% { opacity: 1; }
-  100% { opacity: 0; }
+.card.table.slide-from-held-left {
+  animation: slide-from-held-left 1s;
+}
+
+@keyframes slide-from-held-top {
+  from {
+    transform: translate(calc(var(--held-card-top-x) - var(--card-width) / 2),
+                         var(--held-card-top-y));
+  }
+}
+
+.card.table.slide-from-held-top {
+  animation: slide-from-held-top 1s;
+}
+
+@keyframes slide-from-held-right {
+  from {
+    transform: translate(var(--held-card-right-x),
+                         calc(var(--held-card-right-y) - var(--card-width) / 2))
+               rotate(90deg);
+  }
+}
+
+.card.table.slide-from-held-right {
+  animation: slide-from-held-right 1s;
+}
+
+@keyframes slide-from-hand-0-bottom {
+  from {
+    transform: translate(calc(var(--hand-bottom-x) - var(--card-width) * 1.5),
+                         calc(var(--hand-bottom-y) - var(--card-height) / 2));
+  }
+}
+
+.card.table.slide-from-hand-0-bottom {
+  animation: slide-from-hand-0-bottom 1s;
+}
+
+@keyframes slide-from-hand-1-bottom {
+  from {
+    transform: translate(calc(var(--hand-bottom-x) - var(--card-width) / 2),
+                         calc(var(--hand-bottom-y) - var(--card-height) / 2));
+  }
+}
+
+.card.table.slide-from-hand-1-bottom {
+  animation: slide-from-hand-1-bottom 1s;
+}
+
+@keyframes slide-from-hand-2-bottom {
+  from {
+    transform: translate(calc(var(--hand-bottom-x) + var(--card-width) / 2),
+                         calc(var(--hand-bottom-y) - var(--card-height) / 2));
+  }
+}
+
+.card.table.slide-from-hand-2-bottom {
+  animation: slide-from-hand-2-bottom 1s;
+}
+
+@keyframes slide-from-hand-3-bottom {
+  from {
+    transform: translate(calc(var(--hand-bottom-x) - var(--card-width) * 1.5),
+                         calc(var(--hand-bottom-y) + var(--card-height) / 2));
+  }
+}
+
+.card.table.slide-from-hand-3-bottom {
+  animation: slide-from-hand-3-bottom 1s;
+}
+
+@keyframes slide-from-hand-4-bottom {
+  from {
+    transform: translate(calc(var(--hand-bottom-x) - var(--card-width) / 2),
+                         calc(var(--hand-bottom-y) + var(--card-height) / 2));
+  }
+}
+
+.card.table.slide-from-hand-4-bottom {
+  animation: slide-from-hand-4-bottom 1s;
+}
+
+@keyframes slide-from-hand-5-bottom {
+  from {
+    transform: translate(calc(var(--hand-bottom-x) + var(--card-width) / 2),
+                         calc(var(--hand-bottom-y) + var(--card-height) / 2));
+  }
+}
+
+.card.table.slide-from-hand-5-bottom {
+  animation: slide-from-hand-5-bottom 1s;
+}
+
+@keyframes slide-from-hand-0-top {
+  from {
+    transform: translate(calc(var(--hand-top-x) + var(--card-width) / 2),
+                         calc(var(--hand-top-y) + var(--card-height) / 2));
+  }
+}
+
+.card.table.slide-from-hand-0-top {
+  animation: slide-from-hand-0-top 1s;
+}
+
+@keyframes slide-from-hand-1-top {
+  from {
+    transform: translate(calc(var(--hand-top-x) - var(--card-width) / 2),
+                         calc(var(--hand-top-y) + var(--card-height) / 2));
+  }
+}
+
+.card.table.slide-from-hand-1-top {
+  animation: slide-from-hand-1-top 1s;
+}
+
+@keyframes slide-from-hand-2-top {
+  from {
+    transform: translate(calc(var(--hand-top-x) - var(--card-width) * 1.5),
+                         calc(var(--hand-top-y) + var(--card-height) / 2));
+  }
+}
+
+.card.table.slide-from-hand-2-top {
+  animation: slide-from-hand-2-top 1s;
+}
+
+@keyframes slide-from-hand-3-top {
+  from {
+    transform: translate(calc(var(--hand-top-x) + var(--card-width) / 2),
+                         calc(var(--hand-top-y) - var(--card-height) / 2));
+  }
+}
+
+.card.table.slide-from-hand-3-top {
+  animation: slide-from-hand-3-top 1s;
+}
+
+@keyframes slide-from-hand-4-top {
+  from {
+    transform: translate(calc(var(--hand-top-x) - var(--card-width) / 2),
+                         calc(var(--hand-top-y) - var(--card-height) / 2));
+  }
+}
+
+.card.table.slide-from-hand-4-top {
+  animation: slide-from-hand-4-top 1s;
+}
+
+@keyframes slide-from-hand-5-top {
+  from {
+    transform: translate(calc(var(--hand-top-x) - var(--card-width) * 1.5),
+                         calc(var(--hand-top-y) - var(--card-height) / 2));
+  }
+}
+
+.card.table.slide-from-hand-5-top {
+  animation: slide-from-hand-5-top 1s;
+}
+
+@keyframes slide-from-hand-0-left {
+  from {
+    transform: translate(calc(var(--hand-left-x) + var(--card-height) / 2),
+                         calc(var(--hand-left-y) - var(--card-width) * 1.5))
+               rotate(90deg);
+  }
+}
+
+.card.table.slide-from-hand-0-left {
+  animation: slide-from-hand-0-left 1s;
+}
+
+@keyframes slide-from-hand-1-left {
+  from {
+    transform: translate(calc(var(--hand-left-x) + var(--card-height) / 2),
+                         calc(var(--hand-left-y) - var(--card-width) / 2))
+               rotate(90deg);
+  }
+}
+
+.card.table.slide-from-hand-1-left {
+  animation: slide-from-hand-1-left 1s;
+}
+
+@keyframes slide-from-hand-2-left {
+  from {
+    transform: translate(calc(var(--hand-left-x) + var(--card-height) / 2),
+                         calc(var(--hand-left-y) + var(--card-width) / 2))
+               rotate(90deg);
+  }
+}
+
+.card.table.slide-from-hand-2-left {
+  animation: slide-from-hand-2-left 1s;
+}
+
+@keyframes slide-from-hand-3-left {
+  from {
+    transform: translate(calc(var(--hand-left-x) - var(--card-height) / 2),
+                         calc(var(--hand-left-y) - var(--card-width) * 1.5))
+               rotate(90deg);
+  }
+}
+
+.card.table.slide-from-hand-3-left {
+  animation: slide-from-hand-3-left 1s;
+}
+
+@keyframes slide-from-hand-4-left {
+  from {
+    transform: translate(calc(var(--hand-left-x) - var(--card-height) / 2),
+                         calc(var(--hand-left-y) - var(--card-width) / 2))
+               rotate(90deg);
+  }
+}
+
+.card.table.slide-from-hand-4-left {
+  animation: slide-from-hand-4-left 1s;
+}
+
+@keyframes slide-from-hand-5-left {
+  from {
+    transform: translate(calc(var(--hand-left-x) - var(--card-height) / 2),
+                         calc(var(--hand-left-y) + var(--card-width) / 2))
+               rotate(90deg);
+  }
+}
+
+.card.table.slide-from-hand-5-left {
+  animation: slide-from-hand-5-left 1s;
+}
+
+@keyframes slide-from-hand-0-right {
+  from {
+    transform: translate(calc(var(--hand-right-x) - var(--card-height) / 2),
+                         calc(var(--hand-right-y) + var(--card-width) / 2))
+               rotate(90deg);
+  }
+}
+
+.card.table.slide-from-hand-0-right {
+  animation: slide-from-hand-0-right 1s;
+}
+
+@keyframes slide-from-hand-1-right {
+  from {
+    transform: translate(calc(var(--hand-right-x) - var(--card-height) / 2),
+                         calc(var(--hand-right-y) - var(--card-width) / 2))
+               rotate(90deg);
+  }
+}
+
+.card.table.slide-from-hand-1-right {
+  animation: slide-from-hand-1-right 1s;
+}
+
+@keyframes slide-from-hand-2-right {
+  from {
+    transform: translate(calc(var(--hand-right-x) - var(--card-height) / 2),
+                         calc(var(--hand-right-y) - var(--card-width) * 1.5))
+               rotate(90deg);
+  }
+}
+
+.card.table.slide-from-hand-2-right {
+  animation: slide-from-hand-2-right 1s;
+}
+
+@keyframes slide-from-hand-3-right {
+  from {
+    transform: translate(calc(var(--hand-right-x) + var(--card-height) / 2),
+                         calc(var(--hand-right-y) + var(--card-width) / 2))
+               rotate(90deg);
+  }
+}
+
+.card.table.slide-from-hand-3-right {
+  animation: slide-from-hand-3-right 1s;
+}
+
+@keyframes slide-from-hand-4-right {
+  from {
+    transform: translate(calc(var(--hand-right-x) + var(--card-height) / 2),
+                         calc(var(--hand-right-y) - var(--card-width) / 2))
+               rotate(90deg);
+  }
+}
+
+.card.table.slide-from-hand-4-right {
+  animation: slide-from-hand-4-right 1s;
+}
+
+@keyframes slide-from-hand-5-right {
+  from {
+    transform: translate(calc(var(--hand-right-x) + var(--card-height) / 2),
+                         calc(var(--hand-right-y) - var(--card-width) * 1.5))
+               rotate(90deg);
+  }
+}
+
+.card.table.slide-from-hand-5-right {
+  animation: slide-from-hand-5-right 1s;
+}
+
+@keyframes slide-from-deck {
+  from {
+    transform: translate(var(--deck-x), var(--deck-y));
+  }
+}
+
+@keyframes slide-from-deck {
+  from {
+    transform: translate(var(--deck-x), var(--deck-y));
+  }
+}
+
+.card.held.slide-from-deck {
+  animation: slide-from-deck 1s;
+}
+
+@keyframes slide-from-table {
+  from {
+    transform: translate(var(--table-card-x), var(--table-card-y));
+  }
+}
+
+.card.held.slide-from-table {
+  animation: slide-from-table 1s;
+}
+
+.card.held.bottom {
+  transform: translate(var(--held-card-bottom-x),
+                       var(--held-card-bottom-y));
+}
+
+.card.held.left {
+  transform: translate(var(--held-card-left-x),
+                       var(--held-card-left-y))
+             rotate(90deg);
+}
+
+.card.held.top {
+  transform: translate(var(--held-card-top-x),
+                       var(--held-card-top-y));
+}
+
+.card.held.right {
+  transform: translate(var(--held-card-right-x),
+                       var(--held-card-right-y))
+              rotate(90deg);
+}
+
+.hand.bottom {
+  transform: translate(var(--hand-bottom-x),
+                       var(--hand-bottom-y));
+}
+
+.hand.left {
+  transform: translate(var(--hand-left-x),
+                       var(--hand-left-y))
+             rotate(90deg);
+}
+
+.hand.top {
+  transform: translate(var(--hand-top-x),
+                       var(--hand-top-y))
+             rotate(180deg);
+}
+
+.hand.right {
+  transform: translate(var(--hand-right-x),
+                       var(--hand-right-y))
+             rotate(270deg);
+}
+
+.player-score {
+  fill: #9b4dca;
+  filter: drop-shadow(0 0 0.3rem rgba(173, 255, 47, 1.0));
+  font-size: 200%;
+  text-anchor: middle;
+  dominant-baseline: middle;
+}
+
+.player-score.bottom {
+  transform: translate(-33%, calc(var(--hand-bottom-y) + var(--card-height) / 2));
+}
+
+.player-score.left {
+  transform: translate(var(--hand-left-x), -33%)
+             rotate(90deg);
+}
+
+.player-score.top {
+  transform: translate(33%, var(--hand-top-y));
+}
+
+.player-score.right {
+  transform: translate(var(--hand-right-x), 33%)
+             rotate(270deg);
+}
+
+.game-over-message {
+  fill: #9b4dca;
+  filter: drop-shadow(0 0 0.3rem rgba(173, 255, 47, 1.0));
+  font-size: 500%;
+  text-anchor: middle;
+  dominant-baseline: middle;
 }

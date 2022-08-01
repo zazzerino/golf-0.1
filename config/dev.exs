@@ -2,8 +2,8 @@ import Config
 
 # Configure your database
 config :golf, Golf.Repo,
-  username: "postgres",
-  password: "postgres",
+  username: "golf",
+  password: "golf",
   hostname: "localhost",
   database: "golf_dev",
   stacktrace: true,

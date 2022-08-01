@@ -1,6 +1,22 @@
 defmodule GolfWeb.Router do
   use GolfWeb, :router
 
+  defp put_session_id(conn, _opts) do
+    if get_session(conn, :session_id) do
+      conn
+    else
+      put_session(conn, :session_id, :erlang.unique_integer())
+    end
+  end
+
+  defp put_default_username(conn, _opts) do
+    if get_session(conn, :username) do
+      conn
+    else
+      put_session(conn, :username, "anon")
+    end
+  end
+
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
@@ -8,6 +24,8 @@ defmodule GolfWeb.Router do
     plug :put_root_layout, {GolfWeb.LayoutView, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
+    plug :put_session_id
+    plug :put_default_username
   end
 
   pipeline :api do
@@ -18,6 +36,12 @@ defmodule GolfWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :index
+
+    post "/user/name", UserController, :update_name
+    post "/user/forget", UserController, :clear_session
+
+    live "/game/:game_id", GameLive
+    post "/game/create", GameController, :create_game
   end
 
   # Other scopes may use custom stacks.
