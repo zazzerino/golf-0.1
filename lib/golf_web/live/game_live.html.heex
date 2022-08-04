@@ -1,0 +1,54 @@
+<h2>Game <%= @game_id %></h2>
+
+<svg class="game-svg" viewBox={@svg_viewbox}>
+  <%= if @game do %>
+    <.deck state={@game.state} />
+
+    <%= if @table_card do %>
+      <.table_card name={@table_card} />
+    <% end %>
+
+    <%= for player <- @players do %>
+      <.hand
+        position={player.position}
+        cards={player.hand}
+      />
+
+      <text class={"player-view #{player.position}"}>
+        <%= "#{player.name}: #{player.score}" %>
+      </text>
+    <% end %>
+
+    <%= if @not_started? do %>
+      <text class="waiting-message">
+        Waiting for host to start game...
+      </text>
+    <% end %>
+  <% end %>
+</svg>
+
+<%= if @can_start_game? do %>
+  <button class="start-game-button" phx-click="start_game">
+    Start Game
+  </button>
+<% end %>
+
+<%= if @can_join_game? do %>
+  <.form
+    let={f}
+    for={:join_game}
+    action={Routes.game_path(@socket, :join_game)}
+    phx-submit="join_game"
+    phx-trigger-action={@trigger_join_game?}
+  >
+    <%= hidden_input f, :game_id, value: @game_id %>
+    <%= submit "Join game" %>
+  </.form>
+<% end %>
+
+<.form
+  for={:leave_game}
+  action={Routes.game_path(@socket, :leave_game)}
+  phx-trigger-action={@trigger_leave_game?}
+>
+</.form>

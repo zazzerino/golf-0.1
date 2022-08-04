@@ -1,6 +1,9 @@
 defmodule GolfWeb.GameLive do
   use GolfWeb, :live_view
 
+  alias Golf.{Game, GameServer}
+  alias Game.Player
+
   @svg_width 500
   @svg_height 500
   @svg_viewbox "#{-@svg_width / 2}, #{-@svg_height / 2}, #{@svg_width}, #{@svg_height}"
@@ -11,35 +14,102 @@ defmodule GolfWeb.GameLive do
 
   @impl true
   def mount(params, session, socket) do
-    %{"game_id" => game_id} = params
-    %{"username" => username} = session
+    %{"session_id" => session_id, "username" => username} = session
+    game_id = params["game_id"]
 
-    socket = assign(socket, username: username, game_id: game_id, viewbox: @svg_viewbox)
+    socket =
+      assign(socket,
+        session_id: session_id,
+        username: username,
+        svg_viewbox: @svg_viewbox,
+        game_id: game_id,
+        game: nil,
+        players: [],
+        table_card: nil,
+        not_started?: nil,
+        can_start_game?: nil,
+        can_join_game?: nil,
+        trigger_join_game?: false,
+        trigger_leave_game?: false
+      )
+
+    if connected?(socket) and is_binary(game_id) do
+      Phoenix.PubSub.subscribe(Golf.PubSub, "game:#{game_id}")
+      send(self(), {:load_game, game_id})
+    end
+
     {:ok, socket}
   end
 
-  @impl true
-  def render(assigns) do
-    ~H"""
-    <h2>Game <%= @game_id %></h2>
+  defp assign_game_data(socket, game) do
+    session_id = socket.assigns.session_id
 
-    <svg class="game-svg" viewBox={@viewbox}>
-      <.card_image name="2B" />
-    </svg>
+    player_ids = Game.player_ids(game)
+    user_is_playing? = session_id in player_ids
 
-    <footer>Logged in as <%= @username %></footer>
-    """
+    players = player_views(game.players, user_is_playing?, session_id)
+    table_card = Enum.at(game.table_cards, 0)
+
+    not_started? = game.state == :not_started
+    can_start_game? = not_started? and session_id == game.host_id
+    can_join_game? = not_started? and not user_is_playing?
+
+    assign(socket,
+      game: game,
+      players: players,
+      table_card: table_card,
+      not_started?: not_started?,
+      can_start_game?: can_start_game?,
+      can_join_game?: can_join_game?
+    )
   end
 
-  # Components
+  @impl true
+  def handle_info({:load_game, game_id}, socket) do
+    if pid = GameServer.lookup_game_pid(game_id) do
+      {:ok, game} = GameServer.fetch_state(pid)
+      socket = assign_game_data(socket, game)
+      {:noreply, socket}
+    else
+      socket = assign(socket, trigger_leave_game?: true)
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_info({:game_state, game}, socket) do
+    socket = assign_game_data(socket, game)
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_info(:game_inactive, socket) do
+    socket = assign(socket, trigger_leave_game?: true)
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("start_game", _value, socket) do
+    %{session_id: session_id, game_id: game_id} = socket.assigns
+    GameServer.start_game(game_id, session_id)
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("join_game", _value, socket) do
+    socket = assign(socket, trigger_join_game?: true)
+    {:noreply, socket}
+  end
+
+  ## Heex Components
 
   def card_image(assigns) do
     x = assigns[:x] || card_center_x()
     y = assigns[:y] || card_center_y()
 
     highlight = if assigns[:highlight], do: "highlight"
-    class = "card #{assigns[:class]} #{highlight}" |> String.trim()
-    extra = assigns_to_attributes(assigns, [:class, :card_name, :x, :y, :highlight])
+    class = "card #{assigns[:class]} #{highlight}"
+    extra = assigns_to_attributes(assigns, [:class, :name, :x, :y, :highlight])
     assigns = assign(assigns, x: x, y: y, class: class, extra: extra)
 
     ~H"""
@@ -54,21 +124,67 @@ defmodule GolfWeb.GameLive do
     """
   end
 
-  # Helpers
+  def deck(assigns) do
+    ~H"""
+    <.card_image
+      class="deck"
+      name="2B"
+      x={deck_x(@state)}
+      y={deck_y()}
+    />
+    """
+  end
 
-  def card_scale, do: @card_scale
-  def card_center_x, do: -@card_width / 2
-  def card_center_y, do: -@card_height / 2
+  def table_card(assigns) do
+    ~H"""
+    <.card_image
+      class="table"
+      name={@name}
+      x={table_card_x()}
+      y={table_card_y()}
+    />
+    """
+  end
 
-  def deck_x(_started? = true), do: card_center_x()
-  def deck_x(_), do: card_center_x() - @card_width / 2
+  def hand(assigns) do
+    ~H"""
+    <g class={"hand #{@position}"}>
+      <%= for {{card, face_up?}, index} <- Enum.with_index(@cards) do %>
+        <.card_image
+          class={"hand-card hand-#{index}"}
+          name={if face_up?, do: card, else: "2B"}
+          x={hand_card_x(index)}
+          y={hand_card_y(index)}
+        />
+      <% end %>
+    </g>
+    """
+  end
 
-  def deck_y, do: card_center_y()
+  def held_card(assigns) do
+    ~H"""
+    <.card_image
+      class={"held #{@position}"}
+      name={@name}
+    />
+    """
+  end
 
-  def table_card_x, do: 0
-  def table_card_y, do: card_center_y()
+  ## Helpers
 
-  def hand_card_x(index) do
+  defp card_scale, do: @card_scale
+  defp card_center_x, do: -@card_width / 2
+  defp card_center_y, do: -@card_height / 2
+
+  defp deck_x(:not_started), do: card_center_x()
+  defp deck_x(_state), do: card_center_x() - @card_width / 2
+
+  defp deck_y, do: card_center_y()
+
+  defp table_card_x, do: 0
+  defp table_card_y, do: card_center_y()
+
+  defp hand_card_x(index) do
     case index do
       i when i in [0, 3] -> -@card_width * 1.5
       i when i in [1, 4] -> -@card_width / 2
@@ -76,15 +192,15 @@ defmodule GolfWeb.GameLive do
     end
   end
 
-  def hand_card_y(index) do
+  defp hand_card_y(index) do
     case index do
       i when i in 0..2 -> -@card_height
       _ -> 0
     end
   end
 
-  def hand_positions(player_count) do
-    case player_count do
+  defp hand_positions(num_players) do
+    case num_players do
       1 -> [:bottom]
       2 -> [:bottom, :top]
       3 -> [:bottom, :left, :right]
@@ -92,14 +208,29 @@ defmodule GolfWeb.GameLive do
     end
   end
 
-  def player_positions(player_id, players) do
-    positions = hand_positions(length(players))
-    player_index = Enum.find_index(players, &(&1.id == player_id))
-    players = Golf.rotate(players, player_index)
-    Enum.zip(positions, players)
+  defp player_view({position, player}) do
+    player
+    |> Map.put(:position, position)
+    |> Map.put(:score, Player.score(player))
   end
 
-  def highlight_hand_card?(user_id, holder, playable_cards, index) do
+  defp player_views(players, _user_is_playing? = true, session_id) do
+    positions = hand_positions(length(players))
+    user_index = Enum.find_index(players, &(&1.id == session_id))
+    players = Golf.rotate(players, user_index)
+
+    Enum.zip(positions, players)
+    |> Enum.map(&player_view/1)
+  end
+
+  defp player_views(players, _, _) do
+    positions = hand_positions(length(players))
+
+    Enum.zip(positions, players)
+    |> Enum.map(&player_view/1)
+  end
+
+  defp highlight_hand_card?(user_id, holder, playable_cards, index) do
     card = String.to_existing_atom("hand_#{index}")
     user_id == holder and card in playable_cards
   end

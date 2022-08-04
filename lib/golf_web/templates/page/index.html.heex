@@ -1,15 +1,19 @@
-<h2>Golf</h2>
+<h2>Home</h2>
 
-<%= form_for @conn, Routes.user_path(@conn, :update_name), [as: :user, class: "update-name-form"], fn f -> %>
+<%= form_for @conn,
+             Routes.user_path(@conn, :update_name),
+             [as: :user, class: "update-name-form"],
+             fn f ->
+%>
   <%= label f, :name, "Name" %>
   <%= text_input f, :name, value: @username %>
   <%= submit "Update name" %>
 <% end %>
 
-<%= form_for @conn, Routes.game_path(@conn, :create_game), fn _ -> %>
+<%= form_for @conn, Routes.game_path(@conn, :create_game), fn _f -> %>
   <%= submit "Create game" %>
 <% end %>
 
-<%= form_for @conn, Routes.user_path(@conn, :clear_session), fn _ -> %>
+<%= form_for @conn, Routes.user_path(@conn, :clear_session), fn _f -> %>
   <%= submit "Forget me" %>
 <% end %>

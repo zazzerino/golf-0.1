@@ -4,7 +4,7 @@ defmodule Golf.GameServer do
   require Logger
 
   alias Phoenix.PubSub
-  alias Golf.Game
+  alias Golf.{Game, GameRegistry}
 
   @max_players 4
   @inactivity_timeout 1000 * 60 * 30
@@ -51,8 +51,26 @@ defmodule Golf.GameServer do
     GenServer.cast(via_tuple(id), {:chat_message, message})
   end
 
+  def lookup_game_pid(game_id) do
+    case Registry.lookup(GameRegistry, game_id) do
+      [{pid, _}] -> pid
+      _ -> nil
+    end
+  end
+
+  @spec gen_game_id() :: Game.id()
+  def gen_game_id() do
+    if lookup_game_pid(id = Golf.gen_id()) do
+      # name has already been registered, so we'll recur and try again
+      gen_game_id()
+    else
+      # name hasn't been registered, so we'll return it
+      id
+    end
+  end
+
   defp via_tuple(id) when is_binary(id) do
-    {:via, Registry, {Golf.GameRegistry, id}}
+    {:via, Registry, {GameRegistry, id}}
   end
 
   # Server
@@ -76,14 +94,15 @@ defmodule Golf.GameServer do
   end
 
   @impl true
-  def handle_cast({:add_player, player}, {game, timer, messages} = state)
-      when length(game.players) < @max_players do
-    unless player.id in Game.player_ids(game) do
+  def handle_cast({:add_player, player}, {game, timer, messages} = state) do
+    player_ids = Game.player_ids(game)
+
+    if player.id in player_ids or length(player_ids) >= @max_players do
+      {:noreply, state}
+    else
       game = Game.add_player(game, player)
       broadcast_game_state(game)
       {:noreply, {game, reset_timer(timer), messages}}
-    else
-      {:noreply, state}
     end
   end
 
@@ -95,6 +114,7 @@ defmodule Golf.GameServer do
 
       if Enum.empty?(game.players) do
         Logger.info("Game #{game.id} was ended because all players left")
+        broadcast_game_inactive(game.id)
         {:stop, :normal, state}
       else
         {:noreply, {game, reset_timer(timer), messages}}
@@ -136,7 +156,7 @@ defmodule Golf.GameServer do
   @impl true
   def handle_info(:inactivity_timeout, {game, _timer, _messages} = state) do
     Logger.info("Game #{game.id} was ended for inactivity")
-    PubSub.broadcast(Golf.PubSub, "game:#{game.id}", :game_inactive)
+    broadcast_game_inactive(game.id)
     {:stop, :normal, state}
   end
 
@@ -151,5 +171,9 @@ defmodule Golf.GameServer do
 
   defp broadcast_game_state(game) do
     PubSub.broadcast(Golf.PubSub, "game:#{game.id}", {:game_state, game})
+  end
+
+  defp broadcast_game_inactive(game_id) do
+    PubSub.broadcast(Golf.PubSub, "game:#{game_id}", :game_inactive)
   end
 end

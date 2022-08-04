@@ -29,5 +29,5 @@ window.liveSocket = liveSocket
 const alert = document.querySelector(".alert");
 
 if (alert) {
-  alert.addEventListener("click", _ => alert.style.display = "none");
+  alert.addEventListener("click", _ev => alert.style.display = "none");
 }

@@ -35,7 +35,7 @@ defmodule Golf.Game.Player do
 
   @spec flip_card(t, integer) :: t
   def flip_card(player, index) do
-    hand = List.update_at(player.hand, index, fn {card, _} -> {card, true} end)
+    hand = List.update_at(player.hand, index, fn {card, _face_up?} -> {card, true} end)
     %Player{player | hand: hand}
   end
 
@@ -53,7 +53,7 @@ defmodule Golf.Game.Player do
 
   @spec swap_card(t, integer) :: {Card.t(), t}
   def swap_card(%{held_card: held_card} = player, index) when is_binary(held_card) do
-    {card, _} = Enum.at(player.hand, index)
+    {card, _face_up?} = Enum.at(player.hand, index)
     hand = List.replace_at(player.hand, index, {held_card, true})
     player = %Player{player | held_card: nil, hand: hand}
     {card, player}

@@ -43,6 +43,12 @@
   padding: 1rem;
 }
 
+footer {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid #eaeaea;
+}
+
 .game-svg {
   width: var(--game-width);
   height: var(--game-height);
@@ -457,7 +463,7 @@
              rotate(270deg);
 }
 
-.player-score {
+.player-view {
   fill: #9b4dca;
   filter: drop-shadow(0 0 0.3rem rgba(173, 255, 47, 1.0));
   font-size: 200%;
@@ -465,28 +471,39 @@
   dominant-baseline: middle;
 }
 
-.player-score.bottom {
+.player-view.bottom {
   transform: translate(-33%, calc(var(--hand-bottom-y) + var(--card-height) / 2));
 }
 
-.player-score.left {
+.player-view.left {
   transform: translate(var(--hand-left-x), -33%)
              rotate(90deg);
 }
 
-.player-score.top {
+.player-view.top {
   transform: translate(33%, var(--hand-top-y));
 }
 
-.player-score.right {
+.player-view.right {
   transform: translate(var(--hand-right-x), 33%)
              rotate(270deg);
 }
 
-.game-over-message {
+svg text {
   fill: #9b4dca;
   filter: drop-shadow(0 0 0.3rem rgba(173, 255, 47, 1.0));
-  font-size: 500%;
   text-anchor: middle;
   dominant-baseline: middle;
+}
+
+.game-over-message {
+  font-size: 500%;
+}
+
+.waiting-message {
+  font-size: 200%;
+}
+
+.start-game-button {
+  display: block;
 }

@@ -10,7 +10,7 @@ defmodule Golf.Game do
 
     Each player uncovers two cards. Players can act in any order.
 
-  * :take_card
+  * :take
 
     The current player must draw a card from the deck or table.
 
@@ -19,14 +19,14 @@ defmodule Golf.Game do
     The current player must return their held card to the table or swap it with
     a card in their hand.
 
-  * :flip_card
+  * :flip
 
     The current player must uncover a card in their hand.
-    This state is only entered after the player returns their held card to the table.
+    This state is only entered after a player returns their held card to the table.
 
   * :game_over
 
-    All players cards have been flipped.
+    All players' cards have been flipped.
     The player with the lowest score wins.
 
   """
@@ -111,7 +111,7 @@ defmodule Golf.Game do
 
   @spec player_ids(t) :: [Player.id()]
   def player_ids(game) do
-    Enum.map(game.players, & &1.id)
+    Enum.map(game.players, fn p -> p.id end)
   end
 
   @spec start(t) :: t
@@ -139,12 +139,12 @@ defmodule Golf.Game do
 
   @spec get_player(t, Player.id()) :: Player.t() | nil
   def get_player(game, player_id) do
-    Enum.find(game.players, &(&1.id == player_id))
+    Enum.find(game.players, fn p -> p.id == player_id end)
   end
 
   @spec is_players_turn?(t, Player.id()) :: boolean
   def is_players_turn?(game, player_id) do
-    player_index = Enum.find_index(game.players, &(&1.id == player_id))
+    player_index = Enum.find_index(game.players, fn p -> p.id == player_id end)
     player_index == game.current_player_index
   end
 
@@ -273,7 +273,7 @@ defmodule Golf.Game do
     hand
     |> Enum.with_index()
     |> Enum.reject(fn {{_card, face_up?}, _index} -> face_up? end)
-    |> Enum.map(fn {_, index} -> String.to_existing_atom("hand_#{index}") end)
+    |> Enum.map(fn {_hand_card, index} -> String.to_existing_atom("hand_#{index}") end)
   end
 
   def playable_cards(%{state: :flip_two} = game, player_id) do
