@@ -466,7 +466,7 @@ footer {
 .player-view {
   fill: #9b4dca;
   filter: drop-shadow(0 0 0.3rem rgba(173, 255, 47, 1.0));
-  font-size: 200%;
+  font-size: 150%;
   text-anchor: middle;
   dominant-baseline: middle;
 }
@@ -497,7 +497,7 @@ svg text {
 }
 
 .game-over-message {
-  font-size: 500%;
+  font-size: 400%;
 }
 
 .waiting-message {

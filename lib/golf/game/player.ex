@@ -59,7 +59,7 @@ defmodule Golf.Game.Player do
     {card, player}
   end
 
-  defp golf_value({_card, _face_up? = false}), do: :none
+  defp golf_value({_card, false}), do: :none
   defp golf_value({card, _face_up?}), do: Card.golf_value(card)
 
   defp total_vals(vals, total) do

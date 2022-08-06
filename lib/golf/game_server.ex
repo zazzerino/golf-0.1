@@ -58,9 +58,20 @@ defmodule Golf.GameServer do
     end
   end
 
+  defp gen_id() do
+    min = String.to_integer("100000", 36)
+    max = String.to_integer("ZZZZZZ", 36)
+
+    max
+    |> Kernel.-(min)
+    |> :rand.uniform()
+    |> Kernel.+(min)
+    |> Integer.to_string(36)
+  end
+
   @spec gen_game_id() :: Game.id()
   def gen_game_id() do
-    if lookup_game_pid(id = Golf.gen_id()) do
+    if lookup_game_pid(id = gen_id()) do
       # name has already been registered, so we'll recur and try again
       gen_game_id()
     else

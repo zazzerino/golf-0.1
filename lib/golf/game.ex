@@ -28,7 +28,6 @@ defmodule Golf.Game do
 
     All players' cards have been flipped.
     The player with the lowest score wins.
-
   """
 
   alias __MODULE__

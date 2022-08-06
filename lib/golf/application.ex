@@ -9,7 +9,7 @@ defmodule Golf.Application do
   def start(_type, _args) do
     children = [
       # Start the Ecto repository
-      # Golf.Repo,
+      Golf.Repo,
       # Start the Telemetry supervisor
       GolfWeb.Telemetry,
       # Start the PubSub system

@@ -4,10 +4,10 @@ defmodule GolfWeb.UserController do
   alias Golf.GameServer
 
   def update_name(conn, %{"user" => %{"name" => name}}) when is_binary(name) do
-    %{"session_id" => session_id} = session = get_session(conn)
+    session = get_session(conn)
 
     if game_id = session["game_id"] do
-      GameServer.update_player_name(game_id, session_id, name)
+      GameServer.update_player_name(game_id, session["session_id"], name)
     end
 
     conn

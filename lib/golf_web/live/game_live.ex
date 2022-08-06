@@ -26,6 +26,7 @@ defmodule GolfWeb.GameLive do
         game: nil,
         players: [],
         table_card: nil,
+        playable_cards: [],
         not_started?: nil,
         can_start_game?: nil,
         can_join_game?: nil,
@@ -49,19 +50,23 @@ defmodule GolfWeb.GameLive do
 
     players = player_views(game.players, user_is_playing?, session_id)
     table_card = Enum.at(game.table_cards, 0)
+    playable_cards = Game.playable_cards(game, session_id)
 
     not_started? = game.state == :not_started
     can_start_game? = not_started? and session_id == game.host_id
     can_join_game? = not_started? and not user_is_playing?
 
-    assign(socket,
+    socket = assign(socket,
       game: game,
       players: players,
       table_card: table_card,
+      playable_cards: playable_cards,
       not_started?: not_started?,
       can_start_game?: can_start_game?,
       can_join_game?: can_join_game?
     )
+    IO.inspect(socket.assigns, label: "ASS")
+    socket
   end
 
   @impl true
@@ -101,6 +106,40 @@ defmodule GolfWeb.GameLive do
     {:noreply, socket}
   end
 
+  @impl true
+  def handle_event("deck_click", _value, socket) do
+    %{session_id: session_id, game: game, playable_cards: playable_cards} = socket.assigns
+
+    if :deck in playable_cards do
+      event = Game.Event.new(:take_from_deck, session_id)
+      GameServer.handle_game_event(game.id, event)
+    end
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("hand_click", value, socket) do
+    %{session_id: session_id, game: game, playable_cards: playable_cards} = socket.assigns
+
+    player_id = value["player-id"] |> String.to_integer()
+    index = value["index"] |> String.to_integer()
+    card = String.to_existing_atom("hand_#{index}")
+    face_up? = Map.has_key?(value, "face-up")
+
+    if session_id == player_id and card in playable_cards do
+      if game.state == :discard_or_swap and not face_up? do
+        event = Game.Event.new(:swap, session_id, %{index: index})
+        GameServer.handle_game_event(game.id, event)
+      else
+        event = Game.Event.new(:flip, session_id, %{index: index})
+        GameServer.handle_game_event(game.id, event)
+      end
+    end
+
+    {:noreply, socket}
+  end
+
   ## Heex Components
 
   def card_image(assigns) do
@@ -127,10 +166,12 @@ defmodule GolfWeb.GameLive do
   def deck(assigns) do
     ~H"""
     <.card_image
-      class="deck"
+      class={"deck #{assigns[:highlight]}"}
       name="2B"
       x={deck_x(@state)}
       y={deck_y()}
+      highlight={@highlight}
+      phx-click="deck_click"
     />
     """
   end
@@ -155,6 +196,11 @@ defmodule GolfWeb.GameLive do
           name={if face_up?, do: card, else: "2B"}
           x={hand_card_x(index)}
           y={hand_card_y(index)}
+          highlight={highlight_hand_card?(@session_id, @player_id, @playable_cards, index)}
+          phx-value-index={index}
+          phx-value-player-id={@player_id}
+          phx-value-face-up={face_up?}
+          phx-click="hand_click"
         />
       <% end %>
     </g>
@@ -199,6 +245,15 @@ defmodule GolfWeb.GameLive do
     end
   end
 
+  defp highlight_hand_card?(session_id, player_id, playable_cards, index) do
+    if session_id == player_id do
+      card = String.to_existing_atom("hand_#{index}")
+      if card in playable_cards do
+        "highlight"
+      end
+    end
+  end
+
   defp hand_positions(num_players) do
     case num_players do
       1 -> [:bottom]
@@ -214,10 +269,18 @@ defmodule GolfWeb.GameLive do
     |> Map.put(:score, Player.score(player))
   end
 
+  defp rotate(list, n) do
+    list
+    |> Stream.cycle()
+    |> Stream.drop(n)
+    |> Stream.take(length(list))
+    |> Enum.to_list()
+  end
+
   defp player_views(players, _user_is_playing? = true, session_id) do
     positions = hand_positions(length(players))
     user_index = Enum.find_index(players, &(&1.id == session_id))
-    players = Golf.rotate(players, user_index)
+    players = rotate(players, user_index)
 
     Enum.zip(positions, players)
     |> Enum.map(&player_view/1)
@@ -228,10 +291,5 @@ defmodule GolfWeb.GameLive do
 
     Enum.zip(positions, players)
     |> Enum.map(&player_view/1)
-  end
-
-  defp highlight_hand_card?(user_id, holder, playable_cards, index) do
-    card = String.to_existing_atom("hand_#{index}")
-    user_id == holder and card in playable_cards
   end
 end

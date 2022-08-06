@@ -2,7 +2,10 @@
 
 <svg class="game-svg" viewBox={@svg_viewbox}>
   <%= if @game do %>
-    <.deck state={@game.state} />
+    <.deck
+      state={@game.state}
+      highlight={:deck in @playable_cards}
+    />
 
     <%= if @table_card do %>
       <.table_card name={@table_card} />
@@ -10,9 +13,19 @@
 
     <%= for player <- @players do %>
       <.hand
-        position={player.position}
         cards={player.hand}
+        position={player.position}
+        session_id={@session_id}
+        player_id={player.id}
+        playable_cards={@playable_cards}
       />
+
+      <%= if player.held_card do %>
+        <.held_card
+          position={player.position}
+          name={player.held_card}
+        />
+      <% end %>
 
       <text class={"player-view #{player.position}"}>
         <%= "#{player.name}: #{player.score}" %>
