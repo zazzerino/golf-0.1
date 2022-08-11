@@ -20,7 +20,7 @@ defmodule Golf.Game.Deck do
   @type deal_error :: {:error, :empty_deck} | {:error, :not_enough_cards}
 
   @spec deal(t, integer) :: {:ok, [Card.t()], t} | deal_error
-  def deal([], _n) do
+  def deal([], _) do
     {:error, :empty_deck}
   end
 
@@ -35,7 +35,7 @@ defmodule Golf.Game.Deck do
 
   @spec deal(t) :: {:ok, Card.t(), t} | deal_error
   def deal(deck) do
-    with {:ok, [card | []], deck} <- deal(deck, 1) do
+    with {:ok, [card], deck} <- deal(deck, 1) do
       {:ok, card, deck}
     end
   end

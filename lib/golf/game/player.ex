@@ -23,8 +23,8 @@ defmodule Golf.Game.Player do
   end
 
   @spec update_name(t, binary) :: t
-  def update_name(player, new_name) do
-    %Player{player | name: new_name}
+  def update_name(player, name) do
+    %Player{player | name: name}
   end
 
   @spec give_cards(t, [Card.t()]) :: t
@@ -35,7 +35,7 @@ defmodule Golf.Game.Player do
 
   @spec flip_card(t, integer) :: t
   def flip_card(player, index) do
-    hand = List.update_at(player.hand, index, fn {card, _face_up?} -> {card, true} end)
+    hand = List.update_at(player.hand, index, fn {card, _} -> {card, true} end)
     %Player{player | hand: hand}
   end
 
@@ -53,14 +53,14 @@ defmodule Golf.Game.Player do
 
   @spec swap_card(t, integer) :: {Card.t(), t}
   def swap_card(%{held_card: held_card} = player, index) when is_binary(held_card) do
-    {card, _face_up?} = Enum.at(player.hand, index)
+    {card, _} = Enum.at(player.hand, index)
     hand = List.replace_at(player.hand, index, {held_card, true})
     player = %Player{player | held_card: nil, hand: hand}
     {card, player}
   end
 
-  defp golf_value({_card, false}), do: :none
-  defp golf_value({card, _face_up?}), do: Card.golf_value(card)
+  defp golf_value({_, false}), do: :none
+  defp golf_value({card, _}), do: Card.golf_value(card)
 
   defp total_vals(vals, total) do
     case vals do
@@ -114,7 +114,7 @@ defmodule Golf.Game.Player do
         total
 
       _ ->
-        Enum.reject(vals, & &1 == :none)
+        Enum.reject(vals, fn val -> val == :none end)
         |> Enum.sum()
         |> Kernel.+(total)
     end
@@ -126,23 +126,23 @@ defmodule Golf.Game.Player do
     total_vals(vals, 0)
   end
 
-  @spec cards_face_up(t) :: integer
-  def cards_face_up(player) do
+  @spec num_cards_face_up(t) :: integer
+  def num_cards_face_up(player) do
     Enum.count(player.hand, fn {_, face_up?} -> face_up? end)
   end
 
   @spec all_cards_face_up?(t) :: boolean
   def all_cards_face_up?(player) do
-    cards_face_up(player) == @hand_size
+    num_cards_face_up(player) == @hand_size
   end
 
   @spec two_face_up?(t) :: boolean
   def two_face_up?(player) do
-    cards_face_up(player) == 2
+    num_cards_face_up(player) == 2
   end
 
   @spec one_face_down?(t) :: boolean
   def one_face_down?(player) do
-    cards_face_up(player) == @hand_size - 1
+    num_cards_face_up(player) == @hand_size - 1
   end
 end

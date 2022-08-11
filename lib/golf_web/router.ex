@@ -1,7 +1,7 @@
 defmodule GolfWeb.Router do
   use GolfWeb, :router
 
-  defp put_session_id(conn, _opts) do
+  defp put_session_id(conn, _) do
     if get_session(conn, :session_id) do
       conn
     else
@@ -9,7 +9,7 @@ defmodule GolfWeb.Router do
     end
   end
 
-  defp put_default_username(conn, _opts) do
+  defp put_default_username(conn, _) do
     if get_session(conn, :username) do
       conn
     else
@@ -28,10 +28,6 @@ defmodule GolfWeb.Router do
     plug :put_default_username
   end
 
-  pipeline :api do
-    plug :accepts, ["json"]
-  end
-
   scope "/", GolfWeb do
     pipe_through :browser
 
@@ -46,6 +42,10 @@ defmodule GolfWeb.Router do
     post "/game/join", GameController, :join_game
     post "/game/leave", GameController, :leave_game
   end
+
+  # pipeline :api do
+  #   plug :accepts, ["json"]
+  # end
 
   # Other scopes may use custom stacks.
   # scope "/api", GolfWeb do

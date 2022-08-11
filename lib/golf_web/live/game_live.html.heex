@@ -4,26 +4,37 @@
   <%= if @game do %>
     <.deck
       state={@game.state}
-      highlight={:deck in @playable_cards}
+      playable={:deck in @playable_cards}
     />
 
-    <%= if @table_card do %>
-      <.table_card name={@table_card} />
+    <%= if @table_card_1 do %>
+      <.table_card
+        name={@table_card_1}
+        playable={false}
+      />
+    <% end %>
+
+    <%= if @table_card_0 do %>
+      <.table_card
+        name={@table_card_0}
+        playable={:table in @playable_cards}
+      />
     <% end %>
 
     <%= for player <- @players do %>
       <.hand
         cards={player.hand}
-        position={player.position}
-        session_id={@session_id}
         player_id={player.id}
+        session_id={@session_id}
+        position={player.position}
         playable_cards={@playable_cards}
       />
 
       <%= if player.held_card do %>
         <.held_card
-          position={player.position}
           name={player.held_card}
+          position={player.position}
+	  playable={:held in @playable_cards}
         />
       <% end %>
 
@@ -35,6 +46,12 @@
     <%= if @not_started? do %>
       <text class="waiting-message">
         Waiting for host to start game...
+      </text>
+    <% end %>
+
+    <%= if @game.state == :game_over do %>
+      <text class="game-over-message">
+	Game Over
       </text>
     <% end %>
   <% end %>

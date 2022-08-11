@@ -4,7 +4,12 @@ defmodule Golf.Game.Event do
 
   defstruct [:action, :player_id, :data]
 
-  @type action :: :take_from_deck | :take_from_table | :discard | :swap | :flip
+  @type action ::
+          :take_from_deck
+          | :take_from_table
+          | :discard
+          | :swap
+          | :flip
 
   @type t :: %Event{
           action: action,

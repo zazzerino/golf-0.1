@@ -16,9 +16,7 @@ defmodule Golf.Game.Card do
       ?7 -> 7
       ?8 -> 8
       ?9 -> 9
-      ?T -> 10
-      ?J -> 10
-      ?Q -> 10
+      r when r in [?T, ?J, ?Q] -> 10
     end
   end
 end

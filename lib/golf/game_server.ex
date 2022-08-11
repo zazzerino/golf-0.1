@@ -71,11 +71,13 @@ defmodule Golf.GameServer do
 
   @spec gen_game_id() :: Game.id()
   def gen_game_id() do
-    if lookup_game_pid(id = gen_id()) do
+    id = gen_id()
+
+    if lookup_game_pid(id) do
       # name has already been registered, so we'll recur and try again
       gen_game_id()
     else
-      # name hasn't been registered, so we'll return it
+      # name has not been registered, so we'll return it
       id
     end
   end
@@ -92,7 +94,7 @@ defmodule Golf.GameServer do
   end
 
   @impl true
-  def handle_call(:fetch_state, _from, {game, _timer, _messages} = state) do
+  def handle_call(:fetch_state, _, {game, _, _} = state) do
     {:reply, {:ok, game}, state}
   end
 
@@ -165,7 +167,7 @@ defmodule Golf.GameServer do
   end
 
   @impl true
-  def handle_info(:inactivity_timeout, {game, _timer, _messages} = state) do
+  def handle_info(:inactivity_timeout, {game, _, _} = state) do
     Logger.info("Game #{game.id} was ended for inactivity")
     broadcast_game_inactive(game.id)
     {:stop, :normal, state}
