@@ -4,7 +4,7 @@ defmodule GolfWeb.GameController do
   alias Golf.{Game, GameServer, GameSupervisor}
   alias Game.Player
 
-  def create_game(conn, _params) do
+  def create_game(conn, _) do
     %{"session_id" => session_id, "username" => username} = session = get_session(conn)
 
     if game_id = session["game_id"] do
@@ -22,7 +22,7 @@ defmodule GolfWeb.GameController do
     |> redirect(to: Routes.live_path(conn, GolfWeb.GameLive, game_id))
   end
 
-  def leave_game(conn, _params) do
+  def leave_game(conn, _) do
     session = get_session(conn)
 
     if game_id = session["game_id"] do

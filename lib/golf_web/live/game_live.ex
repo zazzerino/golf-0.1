@@ -26,17 +26,18 @@ defmodule GolfWeb.GameLive do
         game: nil,
         players: [],
         table_card_0: nil,
-	table_card_1: nil,
+        table_card_1: nil,
         playable_cards: [],
-	last_event: nil,
-	last_action: nil,
-	last_event_pos: nil,
+        last_event: nil,
+        last_action: nil,
+        last_event_pos: nil,
         not_started?: nil,
-	draw_table_cards_first?: nil,
+        draw_table_cards_first?: nil,
         can_start_game?: nil,
         can_join_game?: nil,
         trigger_join_game?: false,
-        trigger_leave_game?: false
+        trigger_leave_game?: false,
+        chat_messages: []
       )
 
     if connected?(socket) and is_binary(game_id) do
@@ -59,16 +60,18 @@ defmodule GolfWeb.GameLive do
     last_event = Enum.at(game.events, 0)
     last_action = if last_event, do: last_event.action
 
-    last_event_pos = if last_event do
-      player = Enum.find(players, & &1.id == last_event.player_id)
-      player.position
-    end
+    last_event_pos =
+      if last_event do
+        last_player = Enum.find(players, &(&1.id == last_event.player_id))
+        last_player.position
+      end
 
     table_card_0 = Enum.at(game.table_cards, 0)
     table_card_1 = Enum.at(game.table_cards, 1)
 
-    draw_table_card_first? = table_card_0 &&
-      last_action in [:take_from_deck, :take_from_table]
+    draw_table_cards_first? =
+      table_card_0 &&
+        last_action in [:take_from_deck, :take_from_table]
 
     not_started? = game.state == :not_started
     can_start_game? = not_started? and session_id == game.host_id
@@ -79,7 +82,7 @@ defmodule GolfWeb.GameLive do
       players: players,
       table_card_0: table_card_0,
       table_card_1: table_card_1,
-      draw_table_cards_first?: draw_table_card_first?,
+      draw_table_cards_first?: draw_table_cards_first?,
       playable_cards: playable_cards,
       last_event: last_event,
       last_action: last_action,
@@ -93,8 +96,13 @@ defmodule GolfWeb.GameLive do
   @impl true
   def handle_info({:load_game, game_id}, socket) do
     if pid = GameServer.lookup_game_pid(game_id) do
-      {:ok, game} = GameServer.fetch_state(pid)
-      socket = assign_game_data(socket, game)
+      {:ok, game, messages} = GameServer.fetch_state(pid)
+
+      socket =
+        socket
+        |> assign_game_data(game)
+        |> assign(:chat_messages, messages)
+
       {:noreply, socket}
     else
       socket = assign(socket, trigger_leave_game?: true)
@@ -112,6 +120,12 @@ defmodule GolfWeb.GameLive do
   def handle_info(:game_inactive, socket) do
     socket = assign(socket, trigger_leave_game?: true)
     {:noreply, socket}
+  end
+
+  @impl true
+  def handle_info({:chat_message, message}, socket) do
+    messages = [message | socket.assigns.chat_messages]
+    {:noreply, assign(socket, chat_messages: messages)}
   end
 
   @impl true
@@ -170,21 +184,35 @@ defmodule GolfWeb.GameLive do
 
     if session_id == player_id and card in playable_cards do
       game = socket.assigns.game
-      
-      case game.state do
-	s when s in [:flip_two, :flip] ->
-	  unless Map.has_key?(value, "face-up") do
-	    event = Game.Event.new(:flip, session_id, %{index: index})
-	    GameServer.handle_game_event(game.id, event) 
-	  end
 
-	:holding ->
-	  event = Game.Event.new(:swap, session_id, %{index: index})
-	  GameServer.handle_game_event(game.id, event)
+      case game.state do
+        s when s in [:flip_two, :flip] ->
+          unless Map.has_key?(value, "face-up") do
+            event = Game.Event.new(:flip, session_id, %{index: index})
+            GameServer.handle_game_event(game.id, event)
+          end
+
+        :holding ->
+          event = Game.Event.new(:swap, session_id, %{index: index})
+          GameServer.handle_game_event(game.id, event)
       end
     end
 
     {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("send_chat_message", value, socket) do
+    case value["chat"]["text"] do
+      "" ->
+        {:noreply, socket}
+
+      text when is_binary(text) ->
+        %{session_id: session_id, username: username, game_id: game_id} = socket.assigns
+        message = Golf.ChatMessage.new(session_id, username, text)
+        GameServer.handle_chat_message(game_id, message)
+        {:noreply, socket}
+    end
   end
 
   ## Component Helpers
@@ -269,9 +297,11 @@ defmodule GolfWeb.GameLive do
   def card_image(assigns) do
     highlight = if assigns[:highlight], do: "highlight"
 
-    assigns = assign(assigns,
-      class: "card #{assigns[:class]} #{highlight}",
-      extra: assigns_to_attributes(assigns, [:class, :name, :x, :y, :highlight]))
+    assigns =
+      assign(assigns,
+        class: "card #{assigns[:class]} #{highlight}",
+        extra: assigns_to_attributes(assigns, [:class, :name, :x, :y, :highlight])
+      )
 
     ~H"""
     <image
@@ -302,13 +332,14 @@ defmodule GolfWeb.GameLive do
   def table_card_0(assigns) do
     animation =
       case assigns[:last_action] do
-	:discard ->
-	  "slide-from-held-#{assigns[:last_event_pos]}"
+        :discard ->
+          "slide-from-held-#{assigns[:last_event_pos]}"
 
-	:swap ->
-	  "slide-from-hand-#{assigns[:last_event].data.index}-#{assigns[:last_event_pos]}"
+        :swap ->
+          "slide-from-hand-#{assigns[:last_event].data.index}-#{assigns[:last_event_pos]}"
 
-	_ -> nil
+        _ ->
+          nil
       end
 
     assigns = assign(assigns, class: "table #{animation}")
@@ -378,9 +409,9 @@ defmodule GolfWeb.GameLive do
   def held_card(assigns) do
     animation =
       case assigns[:last_action] do
-	:take_from_deck -> "slide-from-deck"
-	:take_from_table -> "slide-from-table"
-	_ -> nil
+        :take_from_deck -> "slide-from-deck"
+        :take_from_table -> "slide-from-table"
+        _ -> nil
       end
 
     class = "held #{assigns[:position]} #{animation}"
@@ -396,6 +427,52 @@ defmodule GolfWeb.GameLive do
       phx-value-playable={@playable}
       phx-click="held_click"
     />
+    """
+  end
+
+  defp format_datetime(dt) do
+    dt
+    |> DateTime.to_time()
+    |> Time.truncate(:second)
+    |> Time.to_string()
+  end
+
+  def chat_message(assigns) do
+    ~H"""
+    <div class="chat-message">
+      <span class="chat-sent-at">
+        <%= format_datetime(@sent_at) %>
+      </span>
+
+      <span class="chat-username">
+        <%= @username %>:
+      </span>
+
+      <span class="chat-text">
+        <%= @text %>
+      </span>
+    </div>
+    """
+  end
+
+  def chat(assigns) do
+    ~H"""
+    <div class="chat">
+      <div class="chat-messages">
+        <%= for message <- @messages do %>
+          <.chat_message
+            username={message.username}
+            text={message.text}
+            sent_at={message.sent_at}
+          />
+        <% end %>
+      </div>
+      
+      <.form let={f} for={:chat} phx-submit="send_chat_message">
+        <%= text_input f, :text, placeholder: "Type chat message" %>
+        <%= submit "Send" %>
+      </.form>
+    </div>
     """
   end
 end

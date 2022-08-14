@@ -92,8 +92,8 @@ defmodule Golf.GameServer do
   end
 
   @impl true
-  def handle_call(:fetch_state, _, {game, _, _} = state) do
-    {:reply, {:ok, game}, state}
+  def handle_call(:fetch_state, _, {game, _, messages} = state) do
+    {:reply, {:ok, game, messages}, state}
   end
 
   @impl true

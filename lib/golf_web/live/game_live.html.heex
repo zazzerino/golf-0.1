@@ -86,6 +86,8 @@
   </.form>
 <% end %>
 
+<.chat messages={@chat_messages} />
+ 
 <.form
   for={:leave_game}
   action={Routes.game_path(@socket, :leave_game)}

@@ -44,9 +44,9 @@
 }
 
 footer {
-  margin-top: 2rem;
-  padding-top: 1rem;
-  border-top: 1px solid #eaeaea;
+  /* margin-top: 2rem; */
+  /* padding-top: 1rem; */
+  /* border-top: 1px solid #eaeaea; */
 }
 
 .game-svg {
@@ -506,4 +506,20 @@ svg text {
 
 .start-game-button {
   display: block;
+}
+
+.chat {
+  outline: solid 0.2rem #eaeaea;
+  padding: 1rem;
+  height: 200px;
+  overflow: scroll;
+}
+
+.chat-messages {
+  display: flex;
+  flex-direction: column-reverse;
+}
+
+.chat form {
+  margin-bottom: 0;
 }

@@ -32,7 +32,7 @@ defmodule Golf.Game do
 
   next state: :game_over if all players cards are face up after :swap
               :take and go to next player if :swap
-	      :flip if :discard
+       :flip if :discard
 
   * :flip
 
@@ -163,7 +163,7 @@ defmodule Golf.Game do
   def is_players_turn?(%{state: :flip_two}, _), do: true
 
   def is_players_turn?(game, player_id) do
-    player_index = Enum.find_index(game.players, & &1.id == player_id)
+    player_index = Enum.find_index(game.players, &(&1.id == player_id))
     player_index == game.current_player_index
   end
 
@@ -245,8 +245,12 @@ defmodule Golf.Game do
     all_face_up? = Enum.all?(players, &Player.all_cards_face_up?/1)
     state = if all_face_up?, do: :game_over, else: :take
 
-    player_face_up? = Player.all_cards_face_up?(player)
-    final_round? = if player_face_up?, do: true, else: game.final_round?
+    final_round? =
+      if Player.all_cards_face_up?(player) do
+        true
+      else
+        game.final_round?
+      end
 
     game = %Game{
       game
@@ -342,7 +346,7 @@ defmodule Golf.Game do
   end
 
   defp reject_matching_id(maps, id) do
-    Enum.reject(maps, & &1.id == id)
+    Enum.reject(maps, &(&1.id == id))
   end
 
   defp update_matching_id(maps, id, fun) do

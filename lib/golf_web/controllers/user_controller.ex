@@ -16,7 +16,7 @@ defmodule GolfWeb.UserController do
     |> redirect(to: Routes.page_path(conn, :index))
   end
 
-  def clear_session(conn, _params) do
+  def clear_session(conn, _) do
     session = get_session(conn)
 
     if game_id = session["game_id"] do
