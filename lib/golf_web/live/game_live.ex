@@ -28,7 +28,11 @@ defmodule GolfWeb.GameLive do
         table_card_0: nil,
 	table_card_1: nil,
         playable_cards: [],
+	last_event: nil,
+	last_action: nil,
+	last_event_pos: nil,
         not_started?: nil,
+	draw_table_cards_first?: nil,
         can_start_game?: nil,
         can_join_game?: nil,
         trigger_join_game?: false,
@@ -52,8 +56,19 @@ defmodule GolfWeb.GameLive do
     players = player_views(game.players, session_id, user_is_playing?)
     playable_cards = Game.playable_cards(game, session_id)
 
+    last_event = Enum.at(game.events, 0)
+    last_action = if last_event, do: last_event.action
+
+    last_event_pos = if last_event do
+      player = Enum.find(players, & &1.id == last_event.player_id)
+      player.position
+    end
+
     table_card_0 = Enum.at(game.table_cards, 0)
     table_card_1 = Enum.at(game.table_cards, 1)
+
+    draw_table_card_first? = table_card_0 &&
+      last_action in [:take_from_deck, :take_from_table]
 
     not_started? = game.state == :not_started
     can_start_game? = not_started? and session_id == game.host_id
@@ -64,7 +79,11 @@ defmodule GolfWeb.GameLive do
       players: players,
       table_card_0: table_card_0,
       table_card_1: table_card_1,
+      draw_table_cards_first?: draw_table_card_first?,
       playable_cards: playable_cards,
+      last_event: last_event,
+      last_action: last_action,
+      last_event_pos: last_event_pos,
       not_started?: not_started?,
       can_start_game?: can_start_game?,
       can_join_game?: can_join_game?
@@ -269,7 +288,7 @@ defmodule GolfWeb.GameLive do
   def deck(assigns) do
     ~H"""
     <.card_image
-      class="deck"
+      class={"deck #{if assigns[:animate], do: "float-from-top"}"}
       name="2B"
       x={deck_x(@state)}
       y={deck_y()}
@@ -280,10 +299,23 @@ defmodule GolfWeb.GameLive do
     """
   end
 
-  def table_card(assigns) do
+  def table_card_0(assigns) do
+    animation =
+      case assigns[:last_action] do
+	:discard ->
+	  "slide-from-held-#{assigns[:last_event_pos]}"
+
+	:swap ->
+	  "slide-from-hand-#{assigns[:last_event].data.index}-#{assigns[:last_event_pos]}"
+
+	_ -> nil
+      end
+
+    assigns = assign(assigns, class: "table #{animation}")
+
     ~H"""
     <.card_image
-      class="table"
+      class={@class}
       name={@name}
       x={table_card_x()}
       y={table_card_y()}
@@ -291,6 +323,35 @@ defmodule GolfWeb.GameLive do
       phx-value-playable={@playable}
       phx-click="table_click"
     />
+    """
+  end
+
+  def table_card_1(assigns) do
+    ~H"""
+    <.card_image
+      class={"table-1"}
+      name={@name}
+      x={table_card_x()}
+      y={table_card_y()}
+    />
+    """
+  end
+
+  def table_cards(assigns) do
+    ~H"""
+    <%= if @table_card_1 do %>
+      <.table_card_1 name={@table_card_1} />
+    <% end %>
+
+    <%= if @table_card_0 do %>
+      <.table_card_0
+        name={@table_card_0}
+        playable={:table in @playable_cards}
+        last_event={@last_event}
+        last_action={@last_action}
+        last_event_pos={@last_event_pos}
+      />
+    <% end %>
     """
   end
 
@@ -315,9 +376,19 @@ defmodule GolfWeb.GameLive do
   end
 
   def held_card(assigns) do
+    animation =
+      case assigns[:last_action] do
+	:take_from_deck -> "slide-from-deck"
+	:take_from_table -> "slide-from-table"
+	_ -> nil
+      end
+
+    class = "held #{assigns[:position]} #{animation}"
+    assigns = assign(assigns, class: class)
+
     ~H"""
     <.card_image
-      class={"held #{@position}"}
+      class={@class}
       name={@name}
       x={card_center_x()}
       y={card_center_y()}

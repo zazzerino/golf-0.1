@@ -67,7 +67,7 @@ footer {
   }
 }
 
-.card.deck.not-started {
+.card.deck.float-from-top {
   animation: deal-deck 1s;
 }
 

@@ -71,13 +71,11 @@ defmodule Golf.GameServer do
 
   @spec gen_game_id() :: Game.id()
   def gen_game_id() do
-    id = gen_id()
-
-    if lookup_game_pid(id) do
+    if lookup_game_pid(id = gen_id()) do
       # name has already been registered, so we'll recur and try again
       gen_game_id()
     else
-      # name has not been registered, so we'll return it
+      # name hasn't been registered, so we'll return it
       id
     end
   end
@@ -139,7 +137,7 @@ defmodule Golf.GameServer do
 
   @impl true
   def handle_cast({:game_event, event}, {game, timer, messages} = state) do
-    if game.state == :flip_two or Game.is_players_turn?(game, event.player_id) do
+    if Game.is_players_turn?(game, event.player_id) do
       case Game.handle_event(game, event) do
         {:ok, game} ->
           broadcast_game_state(game)

@@ -160,8 +160,10 @@ defmodule Golf.Game do
   end
 
   @spec is_players_turn?(t, Player.id()) :: boolean
+  def is_players_turn?(%{state: :flip_two}, _), do: true
+
   def is_players_turn?(game, player_id) do
-    player_index = Enum.find_index(game.players, fn p -> p.id == player_id end)
+    player_index = Enum.find_index(game.players, & &1.id == player_id)
     player_index == game.current_player_index
   end
 

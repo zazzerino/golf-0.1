@@ -12,8 +12,8 @@ defmodule GolfWeb.GameController do
     end
 
     game_id = GameServer.gen_game_id()
-    player = Player.new(session_id, username)
-    game = Game.new(game_id, player)
+    host = Player.new(session_id, username)
+    game = Game.new(game_id, host)
 
     {:ok, _} = DynamicSupervisor.start_child(GameSupervisor, {GameServer, game})
 

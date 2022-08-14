@@ -5,19 +5,17 @@
     <.deck
       state={@game.state}
       playable={:deck in @playable_cards}
+      animate={@game.state == :not_started}
     />
 
-    <%= if @table_card_1 do %>
-      <.table_card
-        name={@table_card_1}
-        playable={false}
-      />
-    <% end %>
-
-    <%= if @table_card_0 do %>
-      <.table_card
-        name={@table_card_0}
-        playable={:table in @playable_cards}
+    <%= if @draw_table_cards_first? do %>
+      <.table_cards
+        table_card_0={@table_card_0}
+        table_card_1={@table_card_1}
+        playable_cards={@playable_cards}
+        last_event={@last_event}
+        last_action={@last_action}
+        last_event_pos={@last_event_pos}
       />
     <% end %>
 
@@ -35,12 +33,24 @@
           name={player.held_card}
           position={player.position}
 	  playable={:held in @playable_cards}
-        />
+	  last_action={@last_action}
+	/>
       <% end %>
 
       <text class={"player-view #{player.position}"}>
         <%= "#{player.name}: #{player.score}" %>
       </text>
+    <% end %>
+
+    <%= unless @draw_table_cards_first? do %>
+      <.table_cards
+        table_card_0={@table_card_0}
+        table_card_1={@table_card_1}
+        playable_cards={@playable_cards}
+        last_event={@last_event}
+        last_action={@last_action}
+        last_event_pos={@last_event_pos}
+      />
     <% end %>
 
     <%= if @not_started? do %>
