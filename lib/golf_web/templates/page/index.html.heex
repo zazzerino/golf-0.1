@@ -15,5 +15,5 @@
 <% end %>
 
 <%= form_for @conn, Routes.user_path(@conn, :clear_session), fn _ -> %>
-  <%= submit "Forget me" %>
+  <%= submit "Forget me", class: "clear-session-button" %>
 <% end %>

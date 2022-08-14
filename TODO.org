@@ -1,0 +1,8 @@
+* todo
+
+** score bug
+left 2 cols = 7, right col = K equals 14?
+
+** flip bug
+when there's one card left, a player should be able to flip while
+state is :take

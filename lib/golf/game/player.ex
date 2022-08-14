@@ -59,11 +59,8 @@ defmodule Golf.Game.Player do
     {card, player}
   end
 
-  defp golf_value({_, false}), do: :none
-  defp golf_value({card, _}), do: Card.golf_value(card)
-
-  defp total_vals(vals, total) do
-    case vals do
+  def rank_totals(ranks, total) do
+    case ranks do
       # all match
       [a, a, a,
        a, a, a] when is_integer(a) ->
@@ -72,58 +69,62 @@ defmodule Golf.Game.Player do
       # outer cols match
       [a, b, a,
        a, c, a] when is_integer(a) ->
-        total_vals([b, c], total - 20)
+        rank_totals([b, c], total - 20)
 
       # left 2 cols match
       [a, a, b,
        a, a, c] when is_integer(a) ->
-        total_vals([b, c], total - 10)
+        rank_totals([b, c], total - 10)
 
       # right 2 cols match
       [a, b, b,
        c, b, b] when is_integer(b) ->
-        total_vals([a, c], total - 10)
+        rank_totals([a, c], total - 10)
 
       # left col match
       [a, b, c,
        a, d, e] when is_integer(a) ->
-        total_vals([b, c, d, e], total)
+        rank_totals([b, c, d, e], total)
 
       # middle col match
       [a, b, c,
        d, b, e] when is_integer(b) ->
-        total_vals([a, c, d, e], total)
+        rank_totals([a, c, d, e], total)
 
       # right col match
       [a, b, c,
        d, e, c] when is_integer(c) ->
-        total_vals([a, b, d, e], total)
+        rank_totals([a, b, d, e], total)
 
       # left col match, 2nd pass
       [a, b,
        a, c] when is_integer(a) ->
-        total_vals([b, c], total)
+        rank_totals([b, c], total)
 
       # right col match, 2nd pass
       [a, b,
        c, b] when is_integer(b) ->
-        total_vals([a, c], total)
+        rank_totals([a, c], total)
 
       [a,
        a] when is_integer(a) ->
         total
 
       _ ->
-        Enum.reject(vals, fn val -> val == :none end)
+        Enum.reject(ranks, & &1 == :none)
+        |> Enum.map(&Card.rank_value/1)
         |> Enum.sum()
         |> Kernel.+(total)
     end
   end
 
-  @spec score(t) :: integer
+  defp rank_or_none({<<rank, _>>, true}), do: rank
+  defp rank_or_none(_), do: :none
+
   def score(player) do
-    vals = Enum.map(player.hand, &golf_value/1)
-    total_vals(vals, 0)
+    player.hand
+    |> Enum.map(&rank_or_none/1)
+    |> rank_totals(0)
   end
 
   @spec num_cards_face_up(t) :: integer
@@ -136,9 +137,9 @@ defmodule Golf.Game.Player do
     num_cards_face_up(player) == @hand_size
   end
 
-  @spec two_face_up?(t) :: boolean
-  def two_face_up?(player) do
-    num_cards_face_up(player) == 2
+  @spec min_two_face_up?(t) :: boolean
+  def min_two_face_up?(player) do
+    num_cards_face_up(player) >= 2
   end
 
   @spec one_face_down?(t) :: boolean

@@ -37,7 +37,8 @@ defmodule GolfWeb.GameLive do
         can_join_game?: nil,
         trigger_join_game?: false,
         trigger_leave_game?: false,
-        chat_messages: []
+        chat_messages: [],
+        user_is_playing?: nil
       )
 
     if connected?(socket) and is_binary(game_id) do
@@ -62,16 +63,13 @@ defmodule GolfWeb.GameLive do
 
     last_event_pos =
       if last_event do
-        last_player = Enum.find(players, &(&1.id == last_event.player_id))
+        last_player = Enum.find(players, & &1.id == last_event.player_id)
         last_player.position
       end
 
     table_card_0 = Enum.at(game.table_cards, 0)
     table_card_1 = Enum.at(game.table_cards, 1)
-
-    draw_table_cards_first? =
-      table_card_0 &&
-        last_action in [:take_from_deck, :take_from_table]
+    draw_table_cards_first? = last_action in [:take_from_deck, :take_from_table]
 
     not_started? = game.state == :not_started
     can_start_game? = not_started? and session_id == game.host_id
@@ -89,7 +87,8 @@ defmodule GolfWeb.GameLive do
       last_event_pos: last_event_pos,
       not_started?: not_started?,
       can_start_game?: can_start_game?,
-      can_join_game?: can_join_game?
+      can_join_game?: can_join_game?,
+      user_is_playing?: user_is_playing?
     )
   end
 
@@ -192,7 +191,7 @@ defmodule GolfWeb.GameLive do
             GameServer.handle_game_event(game.id, event)
           end
 
-        :holding ->
+        :hold ->
           event = Game.Event.new(:swap, session_id, %{index: index})
           GameServer.handle_game_event(game.id, event)
       end
@@ -218,6 +217,7 @@ defmodule GolfWeb.GameLive do
   ## Component Helpers
 
   defp card_scale, do: @card_scale
+
   defp card_center_x, do: -@card_width / 2
   defp card_center_y, do: -@card_height / 2
 
@@ -284,7 +284,7 @@ defmodule GolfWeb.GameLive do
     |> Enum.map(&player_view/1)
   end
 
-  # Otherwise, we'll keep players in the default position with the host on bottom.
+  # Otherwise, we'll draw the host on bottom.
   defp player_views(players, _, _) do
     positions = hand_positions(length(players))
 
@@ -316,9 +316,12 @@ defmodule GolfWeb.GameLive do
   end
 
   def deck(assigns) do
+    animation = if assigns[:state] == :not_started, do: "float-from-top"
+    assigns = assign(assigns, class: "deck #{animation}")
+
     ~H"""
     <.card_image
-      class={"deck #{if assigns[:animate], do: "float-from-top"}"}
+      class={@class}
       name="2B"
       x={deck_x(@state)}
       y={deck_y()}
@@ -333,10 +336,13 @@ defmodule GolfWeb.GameLive do
     animation =
       case assigns[:last_action] do
         :discard ->
-          "slide-from-held-#{assigns[:last_event_pos]}"
+          pos = assigns.last_event_pos
+          "slide-from-held-#{pos}"
 
         :swap ->
-          "slide-from-hand-#{assigns[:last_event].data.index}-#{assigns[:last_event_pos]}"
+          pos = assigns.last_event_pos
+          index = assigns.last_event.data.index
+          "slide-from-hand-#{index}-#{pos}"
 
         _ ->
           nil

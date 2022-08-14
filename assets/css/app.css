@@ -490,7 +490,7 @@ footer {
 }
 
 svg text {
-  fill: #9b4dca;
+  fill: mediumorchid;
   filter: drop-shadow(0 0 0.3rem rgba(173, 255, 47, 1.0));
   text-anchor: middle;
   dominant-baseline: middle;
@@ -508,16 +508,37 @@ svg text {
   display: block;
 }
 
+.leave-game-button {
+  color: black;
+  background-color: #ebccd1;
+}
+
+.clear-session-button {
+  color: black;
+  background-color: #ebccd1;
+}
+
 .chat {
   outline: solid 0.2rem #eaeaea;
   padding: 1rem;
-  height: 200px;
+  margin-bottom: 2rem;
+  max-height: 200px;
   overflow: scroll;
 }
 
 .chat-messages {
   display: flex;
   flex-direction: column-reverse;
+}
+
+.chat-sent-at {
+  font-size: 75%;
+  color: mediumorchid;
+}
+
+.chat-username {
+  font-size: 90%;
+  color: cornflowerblue;
 }
 
 .chat form {

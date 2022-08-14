@@ -9,7 +9,7 @@ defmodule Golf.Game do
   actions: []
   next state: :flip_two
 
-  * :init_hands
+  * :flip_two
 
   Each player flips over two cards. Players can act in any order.
 
@@ -21,9 +21,9 @@ defmodule Golf.Game do
   The current player must take a card from the deck or table.
 
   actions: [:take_from_deck, :take_from_table]
-  next state: :holding
+  next state: :hold
 
-  * :holding
+  * :hold
 
   The current player must return their held card to the table or swap
   it with a card in their hand.
@@ -32,7 +32,7 @@ defmodule Golf.Game do
 
   next state: :game_over if all players cards are face up after :swap
               :take and go to next player if :swap
-       :flip if :discard
+              :flip if :discard
 
   * :flip
 
@@ -63,7 +63,7 @@ defmodule Golf.Game do
   @deck_count 2
 
   @type id :: binary
-  @type state :: :not_started | :flip_two | :take | :holding | :flip | :game_over
+  @type state :: :not_started | :flip_two | :take | :hold | :flip | :game_over
 
   @type t :: %Game{
           id: id,
@@ -156,7 +156,7 @@ defmodule Golf.Game do
 
   @spec get_player(t, Player.id()) :: Player.t() | nil
   def get_player(game, player_id) do
-    Enum.find(game.players, fn p -> p.id == player_id end)
+    Enum.find(game.players, &(&1.id == player_id))
   end
 
   @spec is_players_turn?(t, Player.id()) :: boolean
@@ -174,8 +174,14 @@ defmodule Golf.Game do
 
     if Player.num_cards_face_up(player) < 2 do
       players = update_matching_id(game.players, player.id, &Player.flip_card(&1, index))
-      all_ready? = Enum.all?(players, &Player.two_face_up?/1)
-      state = if all_ready?, do: :take, else: :flip_two
+
+      state =
+        if Enum.all?(players, &Player.min_two_face_up?/1) do
+          :take
+        else
+          :flip_two
+        end
+
       events = [event | game.events]
       game = %Game{game | state: state, players: players, events: events}
       {:ok, game}
@@ -188,7 +194,7 @@ defmodule Golf.Game do
     {:ok, card, deck} = Deck.deal(game.deck)
     players = update_matching_id(game.players, event.player_id, &Player.hold_card(&1, card))
     events = [event | game.events]
-    game = %Game{game | state: :holding, deck: deck, players: players, events: events}
+    game = %Game{game | state: :hold, deck: deck, players: players, events: events}
     {:ok, game}
   end
 
@@ -199,7 +205,7 @@ defmodule Golf.Game do
 
     game = %Game{
       game
-      | state: :holding,
+      | state: :hold,
         table_cards: table_cards,
         players: players,
         events: events
@@ -208,11 +214,12 @@ defmodule Golf.Game do
     {:ok, game}
   end
 
-  def handle_event(%{state: :holding} = game, %{action: :discard} = event) do
+  def handle_event(%{state: :hold} = game, %{action: :discard} = event) do
     player = get_player(game, event.player_id)
     {card, player} = Player.discard(player)
-    table_cards = [card | game.table_cards]
     players = replace_matching_id(game.players, player)
+
+    table_cards = [card | game.table_cards]
     events = [event | game.events]
 
     {state, player_index} =
@@ -234,23 +241,24 @@ defmodule Golf.Game do
     {:ok, game}
   end
 
-  def handle_event(%{state: :holding} = game, %{action: :swap} = event) do
+  def handle_event(%{state: :hold} = game, %{action: :swap} = event) do
     %{player_id: player_id, data: %{index: index}} = event
+
     player = get_player(game, player_id)
     {card, player} = Player.swap_card(player, index)
-    table_cards = [card | game.table_cards]
     players = replace_matching_id(game.players, player)
+
+    table_cards = [card | game.table_cards]
     events = [event | game.events]
 
-    all_face_up? = Enum.all?(players, &Player.all_cards_face_up?/1)
-    state = if all_face_up?, do: :game_over, else: :take
-
-    final_round? =
-      if Player.all_cards_face_up?(player) do
-        true
+    state =
+      if Enum.all?(players, &Player.all_cards_face_up?/1) do
+        :game_over
       else
-        game.final_round?
+        :take
       end
+
+    final_round? = Player.all_cards_face_up?(player) or game.final_round?
 
     game = %Game{
       game
@@ -274,11 +282,14 @@ defmodule Golf.Game do
 
     players = replace_matching_id(game.players, player)
 
-    all_face_up? = Enum.all?(players, &Player.all_cards_face_up?/1)
-    state = if all_face_up?, do: :game_over, else: :take
+    state =
+      if Enum.all?(players, &Player.all_cards_face_up?/1) do
+        :game_over
+      else
+        :take
+      end
 
-    player_all_face_up? = Player.all_cards_face_up?(player)
-    final_round? = if player_all_face_up?, do: true, else: game.final_round?
+    final_round? = Player.all_cards_face_up?(player) or game.final_round?
 
     game = %Game{
       game
@@ -292,16 +303,23 @@ defmodule Golf.Game do
     {:ok, game}
   end
 
-  @flip_cards [:hand_0, :hand_1, :hand_2, :hand_3, :hand_4, :hand_5]
   @take_cards [:deck, :table]
-  @holding_cards [:held, :hand_0, :hand_1, :hand_2, :hand_3, :hand_4, :hand_5]
+  @flip_cards [:hand_0, :hand_1, :hand_2, :hand_3, :hand_4, :hand_5]
+  @hold_cards [:hand_0, :hand_1, :hand_2, :hand_3, :hand_4, :hand_5, :held]
 
-  defp playable_card_positions(state) do
+  defp playable_cards_in_state(state) do
     case state do
-      s when s in [:flip_two, :flip] -> @flip_cards
-      :take -> @take_cards
-      :holding -> @holding_cards
-      _ -> []
+      s when s in [:flip_two, :flip] ->
+        @flip_cards
+
+      :take ->
+        @take_cards
+
+      :hold ->
+        @hold_cards
+
+      _ ->
+        []
     end
   end
 
@@ -315,7 +333,7 @@ defmodule Golf.Game do
   def playable_cards(%{state: :flip_two} = game, player_id) do
     player = get_player(game, player_id)
 
-    if Player.two_face_up?(player) do
+    if Player.min_two_face_up?(player) do
       []
     else
       playable_hand_cards(player.hand)
@@ -333,7 +351,7 @@ defmodule Golf.Game do
 
   def playable_cards(game, player_id) do
     if is_players_turn?(game, player_id) do
-      playable_card_positions(game.state)
+      playable_cards_in_state(game.state)
     else
       []
     end

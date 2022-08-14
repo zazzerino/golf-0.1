@@ -28,9 +28,9 @@ defmodule Golf.GameTest do
       [:deck, :table]
 
     {:ok, game} = Game.handle_event(game, Event.new(:take_from_deck, player_id))
-    assert game.state == :holding
+    assert game.state == :hold
     assert Game.playable_cards(game, player_id) ==
-      [:held, :hand_0, :hand_1, :hand_2, :hand_3, :hand_4, :hand_5]
+      [:hand_0, :hand_1, :hand_2, :hand_3, :hand_4, :hand_5, :held]
 
     {:ok, game} = Game.handle_event(game, Event.new(:discard, player_id))
     assert game.state == :flip
@@ -43,9 +43,9 @@ defmodule Golf.GameTest do
       [:deck, :table]
 
     {:ok, game} = Game.handle_event(game, Event.new(:take_from_table, player_id))
-    assert game.state == :holding
+    assert game.state == :hold
     assert Game.playable_cards(game, player_id) ==
-      [:held, :hand_0, :hand_1, :hand_2, :hand_3, :hand_4, :hand_5]
+      [:hand_0, :hand_1, :hand_2, :hand_3, :hand_4, :hand_5, :held]
 
     {:ok, game} = Game.handle_event(game, Event.new(:swap, player_id, %{index: 3}))
     assert game.state == :take
@@ -53,9 +53,9 @@ defmodule Golf.GameTest do
       [:deck, :table]
 
     {:ok, game} = Game.handle_event(game, Event.new(:take_from_deck, player_id))
-    assert game.state == :holding
+    assert game.state == :hold
     assert Game.playable_cards(game, player_id) ==
-      [:held, :hand_0, :hand_1, :hand_2, :hand_3, :hand_4, :hand_5]
+      [:hand_0, :hand_1, :hand_2, :hand_3, :hand_4, :hand_5, :held]
 
     {:ok, game} = Game.handle_event(game, Event.new(:discard, player_id))
     assert game.state == :flip
@@ -68,7 +68,7 @@ defmodule Golf.GameTest do
       [:deck, :table]
 
     # {:ok, game} = Game.handle_event(game, Event.new(:take_from_table, player_id))
-    # assert game.state == :holding
+    # assert game.state == :hold
     # assert Game.playable_cards(game, player_id) ==
     #   [:held, :hand_0, :hand_1, :hand_2, :hand_3, :hand_4, :hand_5]
 

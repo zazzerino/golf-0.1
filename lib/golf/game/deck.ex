@@ -9,17 +9,14 @@ defmodule Golf.Game.Deck do
 
   @spec new(integer) :: t
   def new(1), do: @card_list
-
-  def new(n) do
-    @card_list ++ new(n - 1)
-  end
+  def new(n), do: @card_list ++ new(n - 1)
 
   @spec new() :: t
   def new(), do: new(1)
 
-  @type deal_error :: {:error, :empty_deck} | {:error, :not_enough_cards}
+  @type deal_error :: :empty_deck | :not_enough_cards
 
-  @spec deal(t, integer) :: {:ok, [Card.t()], t} | deal_error
+  @spec deal(t, integer) :: {:ok, [Card.t()], t} | {:error, deal_error}
   def deal([], _) do
     {:error, :empty_deck}
   end
@@ -33,7 +30,7 @@ defmodule Golf.Game.Deck do
     {:ok, cards, deck}
   end
 
-  @spec deal(t) :: {:ok, Card.t(), t} | deal_error
+  @spec deal(t) :: {:ok, Card.t(), t} | {:error, deal_error}
   def deal(deck) do
     with {:ok, [card], deck} <- deal(deck, 1) do
       {:ok, card, deck}

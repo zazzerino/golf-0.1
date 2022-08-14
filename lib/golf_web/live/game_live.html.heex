@@ -1,11 +1,12 @@
-<h2>Game <%= @game_id %></h2>
+<h2>
+  Game <%= @game_id %>
+</h2>
 
 <svg class="game-svg" viewBox={@svg_viewbox}>
   <%= if @game do %>
     <.deck
       state={@game.state}
       playable={:deck in @playable_cards}
-      animate={@game.state == :not_started}
     />
 
     <%= if @draw_table_cards_first? do %>
@@ -67,6 +68,8 @@
   <% end %>
 </svg>
 
+<.chat messages={@chat_messages} />
+
 <%= if @can_start_game? do %>
   <button class="start-game-button" phx-click="start_game">
     Start Game
@@ -86,11 +89,12 @@
   </.form>
 <% end %>
 
-<.chat messages={@chat_messages} />
- 
-<.form
-  for={:leave_game}
-  action={Routes.game_path(@socket, :leave_game)}
-  phx-trigger-action={@trigger_leave_game?}
->
-</.form>
+<%= if @user_is_playing? do %>
+  <.form
+    for={:leave_game}
+    action={Routes.game_path(@socket, :leave_game)}
+    phx-trigger-action={@trigger_leave_game?}
+  >
+    <%= submit "Leave game", class: "leave-game-button" %>
+  </.form>
+<% end %>

@@ -1,10 +1,10 @@
 defmodule Golf.Game.Card do
+  @type rank :: integer
+  @type suit :: integer
   @type t :: binary
 
-  @spec golf_value(t) :: 0..10
-  def golf_value(card) do
-    <<rank, _suit>> = card
-
+  @spec rank_value(rank) :: 0..10
+  def rank_value(rank) when is_integer(rank) do
     case rank do
       ?K -> 0
       ?A -> 1
